@@ -1,0 +1,10 @@
+configuration:
+  deployment:
+    port : 3000
+  databases:
+    mongodb:
+      host: 'mongodb://192.168.0.41:27017'
+      databaseName: 'facturas_test'
+      colletionName: 'facturas'
+
+
