@@ -2,69 +2,78 @@ const express = require('express');
 const mongoConnection = require('./mongoconnection')
 const router = express.Router();
 const mongoConfig = require('./mongoConfig')
-const uuid = require('uuid')
-//Clase para realizar los insert a la base de datos de mongo
+const log = require("online-log").log
+
+
 
 const baseURI = "/api/v1";
 
 // Insertar un documento
 router.post(baseURI + "/insert", (req, res) => {
 
-  //El objet req es  json con el documentos de mongo
-  if(!req.body){
-    response_json = {
-      entity: "facturasdatabasehandler",
-      message: `${now.toISOString()} ERROR -- POST couldn't be executed because you are tryng to insert an empty list. `  , 
-      code: "KO"
-    }
+
+  const  collectionName  = req.query.collection
+
+  if (!req.body || Object.keys(req.body).length == 0) {
+
+    log('WARN', 'Se ha realizado una petición de insercción sin body');
+    res.status(409).send("ko - Se ha realizado una petición de insercción sin body")
+    return
+
   }
- 
-  var response_json
-  var now = new Date();
+
+  else if (!collectionName) {
+
+    log('WARN', 'Se ha realizado una petición de inserción sin parámetro collectionName');
+
+    res.status(409).send("ko - Se ha realizado una petición de inserción sin parámetro collectionName")
+    return
+
+  }
+
+
+  if (!mongoConfig.collections.includes(collectionName)) {
+
+    log('WARN', `Se ha intentado realizar una petición de inserción de datos en una colección no permitida [${collectionName}]`);
+    res.status(401).send(`No está permitida la consulta a la colección ${collectionName}`)
+    return 
+  }
+
+  log('DEBUG', `Recibida petición de insercción en la collección ${collectionName}`);
+  log('TRACE', `El cuerpo de la petición es : [${JSON.stringify(req.body)}]`);
+
   try {
-    req.body["uid"] = uuid.v4()
+
     req.body["insertTimeStamp"] = new Date().toISOString()
+
+    if(!Array.isArray(req.body)){
+      req.body = [req.body]
+    }    
     //realizamos la insercion de los documentos en la coleccion de mongo de maxima frecuencia
-    var result = mongoConnection.insertDocuments(mongoConfig.colletionName, [req.body]);
-    console.log(result)
-    if (result) {
-      response_json = {
-        entity: "facturasdatabasehandler",
-        message: "POST  succesfully executed, document inserted on " + now.toISOString(),
-        code: "OK"
-
-      }
-
-    }
-    else {
-      response_json = {
-        entity: "facturasdatabasehandler",
-
-        message: "ERROR -- POST couldn't be executed on " + now.toISOString(),
-        code: "KO"
-      }
-    }
-
-
-
+    mongoConnection.insertDocuments(collectionName, req.body)
+      //si la petición se realiza correctamente 
+      .then((result) => {
+        log('DEBUG', 'Petición procesada correctamente');
+        log('DEBUG', result);
+        res.status(200).send()
+        return
+      })
+      .catch(err => {
+        res.status(500).json(err)
+        return
+      })
 
   } catch (error) {
-    console.error(error)
 
+    log('ERROR', 'Se ha producido un error al procesar la consulta');
+    log('ERROR', error);
 
   }
-  req.body = []
-
-  res.json(response_json);
 
 });
 
-
-
-
-
 router.get(baseURI + "status", (req, res) => {
-  res.status(200).json({ status: 'stillAlive :)' })        
+  res.status(200).json({ status: 'stillAlive :)' })
 });
 
 

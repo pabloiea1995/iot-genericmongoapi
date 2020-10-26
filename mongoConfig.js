@@ -15,9 +15,12 @@ module.exports = {
 
         const config = yaml.safeLoad(fs.readFileSync('configuration.yml', 'utf8'));
         //const indentedJson = JSON.parse(config);
+        //Host de la base de datos 
         module.exports.DB = config["configuration"]["databases"]["mongodb"]["host"]; 
+        //nombre de la base de datos
         module.exports.database_name = config["configuration"]["databases"]["mongodb"]["databaseName"]; 
-        module.exports.colletionName = config["configuration"]["databases"]["mongodb"]["colletionName"]; 
+        //lista de colecciones
+        module.exports.collections = config["configuration"]["databases"]["mongodb"]["collections"]; 
 
         console.log("Configuracion de conexion a mongodb leida con exito")
     } catch (e) {
@@ -27,6 +30,4 @@ module.exports = {
   }
 
   module.exports.readMongoConfig();
-  console.log(module.exports.DB);
-  console.log(module.exports.database_name);
-  console.log(module.exports.max_resolution_collection_name)
+  

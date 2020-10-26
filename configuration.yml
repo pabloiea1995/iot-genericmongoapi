@@ -1,10 +1,10 @@
 configuration:
   deployment:
-    port : 3000
+    port : 3001
   databases:
     mongodb:
       host: 'mongodb://192.168.0.41:27017'
       databaseName: 'facturas_test'
-      colletionName: 'facturas'
-
+      collections: ["facturas", "test"] # lista de colecciones permitidas a las que escribir o de las que leer
+      
 
