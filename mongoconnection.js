@@ -1,4 +1,5 @@
-
+const MongoClient = require('mongodb').MongoClient;
+const mongoConfig = require('./mongoConfig');
 const log = require("online-log").log
 
 module.exports = {
@@ -14,8 +15,7 @@ module.exports = {
   insertDocuments: function (collection_name, document_list) {
 
     return new Promise((resolve, reject) => {
-      const MongoClient = require('mongodb').MongoClient;
-      const mongoConfig = require('./mongoConfig');
+
 
       // Connection URL
       const url = mongoConfig.DB;
@@ -25,9 +25,10 @@ module.exports = {
 
 
       // Use connect method to connect to the server
-      
-        MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true }, function (err, client) {
 
+      MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true }, function (err, client) {
+
+        if (!err) {
           try {
             var db = client.db(dbName);
 
@@ -55,14 +56,21 @@ module.exports = {
 
           }
           catch (error) {
+            client.close()
 
             log('ERROR', `Se ha producido un error en la inserción de documentos en la colección ${collection_name} de la base de datos ${dbName}`);
             reject()
 
           }
+        }
+        else {
+          log('ERROR', 'Error en la creación del cliente de mongo');
+          log('ERROR', err);
+          reject(err)
+        }
 
-        });
-     
+      });
+
     })
 
   },
@@ -75,5 +83,57 @@ module.exports = {
     var collection_name = "marca_" + frequency
 
     return collection_name;
+  },
+
+  executeQuery: function (collection_name, queryObject) {
+
+    return new Promise((resolve, reject) => {
+
+
+      // Connection URL
+      const url = mongoConfig.DB;
+
+      // Database Name
+      const dbName = mongoConfig.database_name;
+
+
+      // Use connect method to connect to the server
+
+      MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true }, function (err, client) {
+
+        if (!err) {
+          try {
+            var db = client.db(dbName);
+
+            var collection = db.collection(collection_name);
+            log('DEBUG', `Consulta realizada con exito para la coleccion ${collection_name}`);
+            //Consulta de los documentos
+            resolve(collection.find(queryObject).toArray())
+
+
+          }
+          catch (error) {
+
+            log('ERROR', `Se ha producido un error en la obtencion de documentos en las colección [${collection_name}] de la base de datos [${dbName}]`);
+            log('ERROR', error);
+            reject(error)
+            client.close()
+
+
+          }
+        }
+        else {
+          log('ERROR', 'Error en la creación del cliente de mongo');
+          log('ERROR', err);
+          reject(err)
+        }
+
+
+      });
+
+    })
+
+
+
   }
 }
