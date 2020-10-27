@@ -17,6 +17,8 @@ router.get(baseURI + "/allowedCollections", (_, res) => {
   return;
 
 })
+
+
 router.get(baseURI + "/databaseName", (_, res) => {
 
   log('DEBUG', 'Recibida petición de consulta de base de datos configurada');
@@ -106,10 +108,12 @@ router.post(baseURI + "/insert", (req, res) => {
 router.post(baseURI + "/query", async (req, res) => {
 
   const { collection } = req.query
-  if(!req.body){
+  if (!req.body) {
     res.status(403).send(`No se ha enviado cuerpo para la petición`)
 
   }
+  log('DEBUG', `Recibida petición de consulta`);
+
   log('TRACE', `Lista de colecciones configuradas en la consulta: ${collection}`);
   log('TRACE', `Objeto consulta:`);
   log('TRACE', req.body);
@@ -132,10 +136,14 @@ router.post(baseURI + "/query", async (req, res) => {
       let result = []
 
       for (let col in collection) {
+        try {
+          let queryResult = await mongoConnection.executeQuery(collection[col], req.body)
+          result.push({ [collection[col]]: queryResult })
+        }
+        catch (err) {
+          res.status(500).json(result)
 
-        let queryResult = await mongoConnection.executeQuery(collection[col], req.body)
-        result.push({[collection[col]]: queryResult})
-
+        }
       }
       res.status(200).json(result)
       return
@@ -150,10 +158,10 @@ router.post(baseURI + "/query", async (req, res) => {
       log('DEBUG', `Solicitada consulta a mongo para una única coleccion: ${collection}`);
       //consulta de una sola coleccion
 
-      
+
       mongoConnection.executeQuery(collection, req.body).then(resolve => {
-        res.status(200).json({[collection]:resolve})
-        return 
+        res.status(200).json({ [collection]: resolve })
+        return
       }).catch(err => {
         res.status(500).json(err)
         return
@@ -163,8 +171,81 @@ router.post(baseURI + "/query", async (req, res) => {
   } else {
     log('WARN', 'Se ha realizado una consulta a mongo para una coleccion vacia');
     res.status(400).send("El parámetro collection no es válido")
-    return 
+    return
   }
+
+
+})
+
+
+router.post(baseURI + "/advancedQuery", async (req, res) => {
+
+  const { collection } = req.query
+  if (!req.body) {
+    res.status(403).send(`No se ha enviado cuerpo para la petición`)
+
+  }
+  log('DEBUG', `Recibida petición de consulta avanzada`);
+  log('TRACE', `Lista de colecciones configuradas en la consulta: ${collection}`);
+  log('TRACE', `Objeto consulta:`);
+  log('TRACE', req.body);
+  if (!collection || collection !== "") {
+
+    //comprobacion de que las colecciones solicitadas están configuradas(permitidas)
+
+    if (Array.isArray(collection)) {
+
+      for (let col in collection) {
+        if (!mongoConfig.collections.includes(collection[col])) {
+          log('WARN', `Se ha realizado una consulta a la colección no configurada ${colection[col]}`);
+          res.status(403).send(`La coleccion ${collection[col]} no está configurada entre las colecciones permitidas`)
+          return
+        }
+      }
+      //si todas las colecciones estan permitidas, se realizan las peticiones
+      //Consulta de varias colecciones
+      let result = []
+
+      for (let col in collection) {
+        try {
+          let queryResult = await mongoConnection.executeAdvancedQuery(collection[col], req.body)
+          result.push({ [collection[col]]: queryResult })
+        }
+        catch (err) {
+          res.status(500).send(err)
+          return
+        }
+      }
+      res.status(200).json(result)
+      return
+    }
+    else {
+      //comprobación de que la coleccion esta pemitida
+      if (!mongoConfig.collections.includes(collection)) {
+        log('WARN', `Se ha realizado una consulta a la colección no configurada ${collection}`);
+        res.status(403).send(`La coleccion ${collection} no está configurada entre las colecciones permitidas`)
+        return;
+      }
+      log('DEBUG', `Solicitada consulta a mongo para una única coleccion: ${collection}`);
+      //consulta de una sola coleccion
+
+
+      mongoConnection.executeAdvancedQuery(collection, req.body).then(resolve => {
+        res.status(200).json({ [collection]: resolve })
+        return
+      }).catch(err => {
+        res.status(500).json(err)
+        return
+      })
+
+    }
+  } else {
+    log('WARN', 'Se ha realizado una consulta a mongo para una coleccion vacia');
+    res.status(400).send("El parámetro collection no es válido")
+    return
+  }
+
+
 
 
 })
@@ -173,6 +254,9 @@ router.post(baseURI + "/query", async (req, res) => {
 router.get(baseURI + "status", (req, res) => {
   res.status(200).json({ status: 'stillAlive :)' })
 });
+
+
+
 
 
 

@@ -133,5 +133,61 @@ module.exports = {
 
     })
 
+  },
+  executeAdvancedQuery: function (collection_name, queryObject) {
+
+    return new Promise((resolve, reject) => {
+
+
+      // Connection URL
+      const url = mongoConfig.DB;
+
+      // Database Name
+      const dbName = mongoConfig.database_name;
+
+
+      // Use connect method to connect to the server
+
+      MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true }, function (err, client) {
+
+        if (!err) {
+          try {
+            var db = client.db(dbName);
+
+            var collection = db.collection(collection_name);
+            log('DEBUG', `Consulta realizada con exito para la coleccion ${collection_name}`);
+            //Consulta de los documentos
+            const { query, sort, limit, projection } = queryObject
+            if (limit) {
+              resolve(collection.find(query).sort(sort).project(projection).limit(limit).toArray())
+            }
+            else {
+              resolve(collection.find(query).sort(sort).project(projection).toArray())
+
+            }
+
+
+          }
+          catch (error) {
+
+            log('ERROR', `Se ha producido un error en la obtencion de documentos en las colección [${collection_name}] de la base de datos [${dbName}]`);
+            log('ERROR', error);
+            reject(error)
+            client.close()
+
+
+          }
+        }
+        else {
+          log('ERROR', 'Error en la creación del cliente de mongo');
+          log('ERROR', err);
+          reject(err)
+        }
+
+
+      });
+
+    })
+
   }
 }
