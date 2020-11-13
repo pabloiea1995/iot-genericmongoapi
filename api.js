@@ -117,7 +117,7 @@ router.post(baseURI + "/query", async (req, res) => {
   log('TRACE', `Lista de colecciones configuradas en la consulta: ${collection}`);
   log('TRACE', `Objeto consulta:`);
   log('TRACE', req.body);
-  if (!collection || collection !== "") {
+  if (collection || collection !== "") {
 
     //comprobacion de que las colecciones solicitadas están configuradas(permitidas)
 
@@ -189,7 +189,7 @@ router.post(baseURI + "/advancedQuery", async (req, res) => {
   log('TRACE', `Lista de colecciones configuradas en la consulta: ${collection}`);
   log('TRACE', `Objeto consulta:`);
   log('TRACE', req.body);
-  if (!collection || collection !== "") {
+  if (collection || collection !== "") {
 
     //comprobacion de que las colecciones solicitadas están configuradas(permitidas)
 
@@ -250,6 +250,54 @@ router.post(baseURI + "/advancedQuery", async (req, res) => {
 
 })
 
+/**
+ * REaliza una consulta por id a una coleccion en concreto
+ */
+router.get(baseURI + "/findById", async (req, res) => {
+
+  const { collection, id } = req.query
+ 
+  log('DEBUG', `Recibida petición de consulta avanzada`);
+  log('TRACE', `Lista de colecciones configuradas en la consulta: ${collection}`);
+  log('TRACE', `Objeto consulta:`);
+  log('TRACE', req.body);
+  if (collection || collection !== "" || id || id !==  "" ) {
+
+    //comprobacion de que las colecciones solicitadas están configuradas(permitidas)
+
+    if (Array.isArray(collection)) {
+
+      log('WARN', `Se ha realizado una consulta de varias colecciones, no permitida en el metodo de busqueda por id`);
+          res.status(403).send(`La consulta de busqueda por id solo admite una colección`)
+    }
+    else {
+      //comprobación de que la coleccion esta pemitida
+      if (!mongoConfig.collections.includes(collection)) {
+        log('WARN', `Se ha realizado una consulta a la colección no configurada ${collection}`);
+        res.status(403).send(`La coleccion ${collection} no está configurada entre las colecciones permitidas`)
+        return;
+      }
+      log('DEBUG', `Solicitada consulta a mongo para una única coleccion: ${collection}`);
+      //consulta de una sola coleccion
+      mongoConnection.findById(collection, id).then(resolve => {
+        res.status(200).json(resolve)
+        return
+      }).catch(err => {
+        res.status(500).json(err)
+        return
+      })
+
+    }
+  } else {
+    log('WARN', 'Se ha realizado una consulta a mongo para una coleccion vacia');
+    res.status(400).send("El parámetro collection no es válido")
+    return
+  }
+
+
+
+
+})
 
 router.get(baseURI + "status", (req, res) => {
   res.status(200).json({ status: 'stillAlive :)' })
