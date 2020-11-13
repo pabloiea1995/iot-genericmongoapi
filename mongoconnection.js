@@ -107,7 +107,7 @@ module.exports = {
             var db = client.db(dbName);
 
             var collection = db.collection(collection_name);
-            log('DEBUG', `Consulta realizada con exito para la coleccion ${collection_name}`);
+            log('DEBUG', `Consulta realizada con éxito para la coleccion ${collection_name}`);
             //Consulta de los documentos
             resolve(collection.find(queryObject).toArray())
 
@@ -156,7 +156,7 @@ module.exports = {
             var db = client.db(dbName);
 
             var collection = db.collection(collection_name);
-            log('DEBUG', `Consulta realizada con exito para la coleccion ${collection_name}`);
+            log('DEBUG', `Consulta realizada con éxito para la coleccion ${collection_name}`);
             //Consulta de los documentos
             const { query, sort, limit, projection } = queryObject
             if (limit) {
@@ -214,7 +214,7 @@ module.exports = {
             var db = client.db(dbName);
 
             var collection = db.collection(collection_name);
-            log('DEBUG', `Consulta realizada con exito para la coleccion ${collection_name}`);
+            log('DEBUG', `Consulta realizada con éxito para la coleccion ${collection_name}`);
             //Consulta de los documentos
             resolve(collection.findOne({_id: ObjectId(id)}))
 
@@ -223,6 +223,124 @@ module.exports = {
           catch (error) {
 
             log('ERROR', `Se ha producido un error en la obtencion de documentos en las colección [${collection_name}] de la base de datos [${dbName}]`);
+            log('ERROR', error);
+            reject(error)
+            client.close()
+
+
+          }
+        }
+        else {
+          log('ERROR', 'Error en la creación del cliente de mongo');
+          log('ERROR', err);
+          reject(err)
+        }
+
+
+      });
+
+    })
+
+
+  },
+  /**
+   * Actualiza un elemeto existente
+   * @param {string} collection_name 
+   * @param {Object} document 
+   */
+  updateOne: function (collection_name, document) {
+
+    return new Promise((resolve, reject) => {
+
+
+      // Connection URL
+      const url = mongoConfig.DB;
+
+      // Database Name
+      const dbName = mongoConfig.database_name;
+
+
+      // Use connect method to connect to the server
+
+      MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true }, function (err, client) {
+
+        log('DEBUG', `Realizando consulta  de actualización para el ojeto con id ${document._id} para la coleccion ${collection_name}`);
+
+        if (!err) {
+          try {
+            var db = client.db(dbName);
+
+            var collection = db.collection(collection_name);
+            log('DEBUG', `Consulta realizada con éxito para la coleccion ${collection_name}`);
+            //Actualización del documento
+            //primero se elimina el id del documento
+            let updateId = ObjectId(document._id)
+            delete document._id
+            resolve(collection.replaceOne({_id: updateId}, document  ))
+
+
+          }
+          catch (error) {
+
+            log('ERROR', `Se ha producido un error en la actualización del documento en la colección [${collection_name}] de la base de datos [${dbName}]`);
+            log('ERROR', error);
+            reject(error)
+            client.close()
+
+
+          }
+        }
+        else {
+          log('ERROR', 'Error en la creación del cliente de mongo');
+          log('ERROR', err);
+          reject(err)
+        }
+
+
+      });
+
+    })
+
+
+  },
+
+   /**
+   * Elimina un elemeto existente
+   * @param {string} collection_name 
+   * @param {Object} document 
+   */
+  deleteOne: function (collection_name, id) {
+
+    return new Promise((resolve, reject) => {
+
+
+      // Connection URL
+      const url = mongoConfig.DB;
+
+      // Database Name
+      const dbName = mongoConfig.database_name;
+
+
+      // Use connect method to connect to the server
+
+      MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true }, function (err, client) {
+
+        log('DEBUG', `Realizando consulta  de eliminación para el ojeto con id ${id} para la coleccion ${collection_name}`);
+
+        if (!err) {
+          try {
+            var db = client.db(dbName);
+
+            var collection = db.collection(collection_name);
+            log('DEBUG', `Consulta realizada con éxito para la coleccion ${collection_name}`);
+            //Eliminación del documento
+            resolve(collection.deleteOne({_id: ObjectId(id)} ))
+
+
+          }
+          catch (error) {
+
+            log('ERROR', `Se ha producido un error en la actualización del documento en la colección [${collection_name}] de la base de datos [${dbName}]`);
             log('ERROR', error);
             reject(error)
             client.close()

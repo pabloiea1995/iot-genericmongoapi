@@ -256,19 +256,19 @@ router.post(baseURI + "/advancedQuery", async (req, res) => {
 router.get(baseURI + "/findById", async (req, res) => {
 
   const { collection, id } = req.query
- 
+
   log('DEBUG', `Recibida petición de consulta avanzada`);
   log('TRACE', `Lista de colecciones configuradas en la consulta: ${collection}`);
   log('TRACE', `Objeto consulta:`);
   log('TRACE', req.body);
-  if (collection || collection !== "" || id || id !==  "" ) {
+  if (collection || collection !== "" || id || id !== "") {
 
     //comprobacion de que las colecciones solicitadas están configuradas(permitidas)
 
     if (Array.isArray(collection)) {
 
       log('WARN', `Se ha realizado una consulta de varias colecciones, no permitida en el metodo de busqueda por id`);
-          res.status(403).send(`La consulta de busqueda por id solo admite una colección`)
+      res.status(403).send(`La consulta de busqueda por id solo admite una colección`)
     }
     else {
       //comprobación de que la coleccion esta pemitida
@@ -284,6 +284,134 @@ router.get(baseURI + "/findById", async (req, res) => {
         return
       }).catch(err => {
         res.status(500).json(err)
+        return
+      })
+
+    }
+  } else {
+    log('WARN', 'Se ha realizado una consulta a mongo para una coleccion vacia');
+    res.status(400).send("El parámetro collection no es válido")
+    return
+  }
+
+
+
+
+})
+/**
+ * REaliza una consulta por id a una coleccion en concreto para actualizar un objeto
+ */
+router.put(baseURI + "/updateOne", async (req, res) => {
+
+  const { collection } = req.query
+  const document = req.body
+
+  log('DEBUG', `Recibida petición de consulta avanzada`);
+  log('TRACE', `Lista de colecciones configuradas en la consulta: ${collection}`);
+  log('TRACE', `Objeto consulta:`);
+  log('TRACE', req.body);
+  if (collection || collection !== "" || body) {
+
+    //comprobacion de que el elemento existe en mongo (tiene propiedad _id)
+    if (!document._id) {
+      log('WARN', `El documento a actualizar aun no existe en la coleccion ${collection}`);
+      res.status(403).send(`El documento a actualizar aun no existe en la coleccion ${collection}`)
+      return;
+    }
+    //comprobacion de que las colecciones solicitadas están configuradas(permitidas)
+
+    if (Array.isArray(collection)) {
+
+      log('WARN', `Se ha realizado una consulta de varias colecciones, no permitida en el metodo de busqueda por id`);
+      res.status(403).send(`La consulta de busqueda por id solo admite una colección`)
+    }
+    else {
+      //comprobación de que la coleccion esta pemitida
+      if (!mongoConfig.collections.includes(collection)) {
+        log('WARN', `Se ha realizado una consulta a la colección no configurada ${collection}`);
+        res.status(403).send(`La coleccion ${collection} no está configurada entre las colecciones permitidas`)
+        return;
+      }
+      let id = document._id
+      log('DEBUG', `Solicitada consulta a mongo de actualizacion de un elemento con id ${document._id} para una única coleccion: ${collection}`);
+      //consulta de una sola coleccion
+      //se añade al objeto la propiedad lasUpdateTimeStamp
+      document["lastUpdateTimeStamp"] = new Date()
+      mongoConnection.updateOne(collection, document).then(resolve => {
+
+        if (resolve.name === "MongoError") {
+          res.status(500).json("Se ha producido un error en la actualización")
+          return
+        }
+        let result = resolve.ops[0]
+        result._id = id
+
+        res.status(200).json(result)
+        return
+      }).catch(err => {
+        log('ERROR', err);
+        res.status(500).send(err)
+        return
+      })
+
+    }
+  } else {
+    log('WARN', 'Se ha realizado una consulta a mongo para una coleccion vacia');
+    res.status(400).send("El parámetro collection no es válido")
+    return
+  }
+
+
+
+
+})
+/**
+ * REaliza una consulta por id a una coleccion en concreto para actualizar un objeto
+ */
+router.delete(baseURI + "/deleteOne", async (req, res) => {
+
+  const { collection } = req.query
+  const { id } = req.query
+
+  log('DEBUG', `Recibida petición de consulta avanzada`);
+  log('TRACE', `Lista de colecciones configuradas en la consulta: ${collection}`);
+  log('TRACE', `Objeto consulta:`);
+  log('TRACE', req.body);
+  if (collection || collection !== "" || id) {
+
+    //comprobacion de que el elemento existe en mongo (tiene propiedad _id)
+    if (!id) {
+      log('WARN', `El documento a eliminar aun no existe en la coleccion ${collection}`);
+      res.status(403).send(`El documento a eliminar aun no existe en la coleccion ${collection}`)
+      return;
+    }
+    //comprobacion de que las colecciones solicitadas están configuradas(permitidas)
+
+    if (Array.isArray(collection)) {
+
+      log('WARN', `Se ha realizado una consulta de varias colecciones, no permitida en el metodo de busqueda por id`);
+      res.status(403).send(`La eliminación por id solo admite una colección`)
+    }
+    else {
+      //comprobación de que la coleccion esta pemitida
+      if (!mongoConfig.collections.includes(collection)) {
+        log('WARN', `Se ha realizado una consulta a la colección no configurada ${collection}`);
+        res.status(403).send(`La coleccion ${collection} no está configurada entre las colecciones permitidas`)
+        return;
+      }
+      log('DEBUG', `Solicitada consulta a mongo de eliminación de un elemento con id ${id} para una única coleccion: ${collection}`);
+      //consulta de una sola coleccion
+      
+      mongoConnection.deleteOne(collection, id).then(resolve => {
+        if (resolve.name === "MongoError") {
+          res.status(500).json("Se ha producido un error en la eliminación")
+          return
+        }
+        res.status(200).send("ok")
+        return
+      }).catch(err => {
+        log('ERROR', err);
+        res.status(500).send(err)
         return
       })
 
